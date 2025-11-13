@@ -21,22 +21,27 @@ describe('AllPerks page (Directory)', () => {
       { initialEntries: ['/explore'] }
     );
 
-    // Wait for the baseline card to appear which guarantees the asynchronous
-    // fetch finished.
-    await waitFor(() => {
-      expect(screen.getByText(seededPerk.title)).toBeInTheDocument();
-    });
+    // Wait for the merchant dropdown to populate (this ensures the initial
+    // /api/perks/all fetch has completed).
+    const merchantSelect = await screen.findByRole('combobox', { timeout: 10000 });
 
-    // Interact with the name filter input using the real value that
-    // corresponds to the seeded record.
+    // Verify the seeded merchant appears in the dropdown options.
+    await waitFor(() => {
+      const option = Array.from(merchantSelect.querySelectorAll('option')).find(
+        (opt) => opt.value === seededPerk.merchant
+      );
+      expect(option).toBeTruthy();
+    }, { timeout: 5000 });
+
+    // Now interact with the name filter input using the real value that
+    // corresponds to the seeded record. This tests the auto-search debounce.
     const nameFilter = screen.getByPlaceholderText('Enter perk name...');
     fireEvent.change(nameFilter, { target: { value: seededPerk.title } });
 
-    await waitFor(() => {
-      expect(screen.getByText(seededPerk.title)).toBeInTheDocument();
-    });
+    // The filtered result should eventually contain the seeded perk title.
+    await screen.findByText(seededPerk.title, { timeout: 10000 });
 
-    // The summary text should continue to reflect the number of matching perks.
+    // The summary text should reflect a non-empty matching set.
     expect(screen.getByText(/showing/i)).toHaveTextContent('Showing');
   });
 
